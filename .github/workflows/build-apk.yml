@@ -1,0 +1,51 @@
+name: Build APK
+
+on:
+  push:
+    branches:
+      - main   # Trigger when code is pushed to the main branch
+  pull_request:
+    branches:
+      - main   # Trigger for pull requests to the main branch
+  workflow_dispatch: # Allows you to manually trigger the build
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Use Ubuntu as the build environment
+
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Java (required for Android builds)
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'  # Use Java 17 (common for Android Studio projects)
+
+      # Step 3: Set up Gradle cache to speed up builds
+      - name: Setup Gradle cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # Step 4: Build the APK
+      - name: Build the APK
+        run: |
+          cd app
+          chmod +x ../gradlew  # Ensure Gradle wrapper is executable
+          ../gradlew assembleDebug  # Build the debug APK
+
+      # Step 5: Upload APK as an artifact
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: Debug-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
